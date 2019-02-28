@@ -10,16 +10,6 @@ Actor::Actor(StudentWorld * w, int imageID, double x, double y, int dir, int dep
 {
 }
 
-bool Actor::triggersOnlyActiveLandmines() const
-{
-	return false;
-}
-
-bool Actor::triggersZombieVomit() const
-{
-	return false;
-}
-
 bool Actor::threatensCitizens() const
 {
 	return false;
@@ -144,20 +134,45 @@ void Vomit::activateIfAppropriate(Actor * a)
 
 //============================================================LANDMINE===========================================
 Landmine::Landmine(StudentWorld * w, double x, double y)
-	:ActivatingObject(w,IID_LANDMINE,x,y,1,right)
+	:ActivatingObject(w,IID_LANDMINE,x,y,1,right),safetyTicks(0),isActive(false)
 {
 }
 
 void Landmine::doSomething()
 {
+	if (isDead())
+		return;
+	if (safetyTicks)
+	{
+		safetyTicks--;
+		if (!safetyTicks)
+			isActive = true;
+		return;
+	}
+	getWorld()->activateOnAppropriateActors(this);
+
 }
 
 void Landmine::activateIfAppropriate(Actor * a)
 {
+	if (a->triggersOnlyActiveLandmines())
+		dieByFallOrBurnIfAppropriate();
 }
 
 void Landmine::dieByFallOrBurnIfAppropriate()
 {
+	setDead();
+	getWorld()->playSound(SOUND_LANDMINE_EXPLODE);
+	getWorld()->addActor(new Flame(getWorld(), getX() + SPRITE_WIDTH, getY() + SPRITE_HEIGHT, up));
+	getWorld()->addActor(new Flame(getWorld(), getX(), getY() + SPRITE_HEIGHT, up));
+	getWorld()->addActor(new Flame(getWorld(), getX() - SPRITE_WIDTH, getY() + SPRITE_HEIGHT, up));
+	getWorld()->addActor(new Flame(getWorld(), getX() - SPRITE_WIDTH, getY(), up));
+	getWorld()->addActor(new Flame(getWorld(), getX() - SPRITE_WIDTH, getY() - SPRITE_HEIGHT, up));
+	getWorld()->addActor(new Flame(getWorld(), getX(), getY() - SPRITE_HEIGHT, up));
+	getWorld()->addActor(new Flame(getWorld(), getX() + SPRITE_WIDTH, getY() - SPRITE_HEIGHT, up));
+	getWorld()->addActor(new Flame(getWorld(), getX() + SPRITE_WIDTH, getY(), up));
+	getWorld()->addActor(new Flame(getWorld(), getX(), getY(),up));
+	getWorld()->addActor(new Pit(getWorld(), getX(), getY()));
 }
 
 //============================================================GOODIE===========================================
@@ -245,11 +260,6 @@ bool Agent::blocksMovement() const
 	return true;
 }
 
-bool Agent::triggersOnlyActiveLandmines() const
-{
-	return false;
-}
-
 //============================================================HUMAN===========================================
 Human::Human(StudentWorld * w, int imageID, double x, double y)
 	:Agent(w,imageID,x,y),m_isInfected(false),m_infection(0)
@@ -263,13 +273,10 @@ void Human::beVomitedOnIfAppropriate()
 		m_infection = 1;
 }
 
-bool Human::triggersZombieVomit() const
-{
-	return false;
-}
-
 void Human::clearInfection()
 {
+	m_isInfected = false;
+	m_infection = 0;
 }
 
 //============================================================PENELOPE===========================================
@@ -318,11 +325,57 @@ void Penelope::doSomething()
 			if (!getWorld()->isAgentMovementBlockedAt(getX() + 4, getY(), this))
 				moveTo(getX() + 4, getY());
 			break;
-		case KEY_PRESS_SPACE: //not done yet
+		case KEY_PRESS_SPACE:
+			if (m_numFlameCharges)
+			{
+				m_numFlameCharges--;
+				getWorld()->playSound(SOUND_PLAYER_FIRE);
+				switch (getDirection())
+				{
+				case up:
+					for (int i = 1;i < 4;i++)
+						if (getWorld()->isFlameBlockedAt(getX(), getY() + i * SPRITE_HEIGHT))
+							break;
+						else
+							getWorld()->addActor(new Flame(getWorld(), getX(), getY() + i * SPRITE_HEIGHT, up));
+					break;
+				case down:
+					for (int i = 1;i < 4;i++)
+						if (getWorld()->isFlameBlockedAt(getX(), getY() - i * SPRITE_HEIGHT))
+							break;
+						else
+							getWorld()->addActor(new Flame(getWorld(), getX(), getY() - i * SPRITE_HEIGHT, down));
+					break;
+				case left:
+					for (int i = 1;i < 4;i++)
+						if (getWorld()->isFlameBlockedAt(getX() - i * SPRITE_HEIGHT, getY()))
+							break;
+						else
+							getWorld()->addActor(new Flame(getWorld(), getX() - i * SPRITE_HEIGHT, getY(), left));
+					break;
+				case right:
+					for (int i = 1;i < 4;i++)
+						if (getWorld()->isFlameBlockedAt(getX() + i * SPRITE_HEIGHT, getY()))
+							break;
+						else
+							getWorld()->addActor(new Flame(getWorld(), getX() + i * SPRITE_HEIGHT, getY(), right));
+					break;
+				}
+			}
 			break;
-		case KEY_PRESS_TAB: //not done yet
+		case KEY_PRESS_TAB:
+			if (m_numLandmines)
+			{
+				m_numLandmines--;
+				getWorld()->addActor(new Landmine(getWorld(), getX(), getY()));
+			}
 			break;
-		case KEY_PRESS_ENTER: //not done yet
+		case KEY_PRESS_ENTER:
+			if (m_numVaccines)
+			{
+				m_numVaccines--;
+				clearInfection();
+			}
 			break;
 		}
 	}
@@ -333,6 +386,7 @@ void Penelope::doSomething()
 void Penelope::useExitIfAppropriate()
 {
 	getWorld()->recordLevelFinishedIfAllCitizensGone();
+	getWorld()->playSound(SOUND_LEVEL_FINISHED);
 }
 
 void Penelope::dieByFallOrBurnIfAppropriate()
@@ -377,16 +431,130 @@ Zombie::Zombie(StudentWorld * w, double x, double y)
 
 //============================================================DUMB_ZOMBIE===========================================
 DumbZombie::DumbZombie(StudentWorld * w, double x, double y)
-	: Zombie(w, x, y)
+	: Zombie(w, x, y), m_stuck(false),m_movementPlan(0)
 {
 }
 
 void DumbZombie::doSomething()
 {
+	if (isDead())
+		return;
+	if (m_stuck)
+	{
+		m_stuck = false;
+		return;
+	}
+	m_stuck = true;
+	switch (getDirection())
+	{
+	case right:
+		if (getWorld()->isZombieVomitTriggerAt(getX() + SPRITE_WIDTH, getY()))
+			if (!randInt(0, 2))
+			{
+				getWorld()->addActor(new Vomit(getWorld(), getX() + SPRITE_WIDTH, getY()));
+				getWorld()->playSound(SOUND_ZOMBIE_VOMIT);
+				return;
+			}
+		break;
+	case left:
+		if (getWorld()->isZombieVomitTriggerAt(getX() - SPRITE_WIDTH, getY()))
+			if (!randInt(0, 2))
+			{
+				getWorld()->addActor(new Vomit(getWorld(), getX() - SPRITE_WIDTH, getY()));
+				getWorld()->playSound(SOUND_ZOMBIE_VOMIT);
+				return;
+			}
+		break;
+	case up:
+		if (getWorld()->isZombieVomitTriggerAt(getX() , getY()+SPRITE_HEIGHT))
+			if (!randInt(0, 2))
+			{
+				getWorld()->addActor(new Vomit(getWorld(), getX(), getY() + SPRITE_HEIGHT));
+				getWorld()->playSound(SOUND_ZOMBIE_VOMIT);
+				return;
+			}
+		break;
+	case down:
+		if (getWorld()->isZombieVomitTriggerAt(getX(), getY()-SPRITE_HEIGHT))
+			if (!randInt(0, 2))
+			{
+				getWorld()->addActor(new Vomit(getWorld(), getX(), getY() - SPRITE_HEIGHT));
+				getWorld()->playSound(SOUND_ZOMBIE_VOMIT);
+				return;
+			}
+		break;
+	}
+	if (!m_movementPlan)
+	{
+		m_movementPlan = randInt(3, 10);
+		setDirection(90 *randInt(0, 3));
+	}
+	switch (getDirection())
+	{
+	case right:
+		if (!getWorld()->isAgentMovementBlockedAt(getX() + 1, getY(), this))
+		{
+			moveTo(getX() + 1, getY());
+			m_movementPlan--;
+		}
+		else
+			m_movementPlan = 0;
+		break;
+	case left:
+		if (!getWorld()->isAgentMovementBlockedAt(getX() - 1, getY(), this))
+		{
+			moveTo(getX() - 1, getY());
+			m_movementPlan--;
+		}
+		else
+			m_movementPlan = 0;
+		break;
+	case up:
+		if (!getWorld()->isAgentMovementBlockedAt(getX(), getY()+1, this))
+		{
+			moveTo(getX(), getY() + 1);
+			m_movementPlan--;
+		}
+		else
+			m_movementPlan = 0;
+		break;
+	case down:
+		if (!getWorld()->isAgentMovementBlockedAt(getX(), getY() - 1, this))
+		{
+			moveTo(getX(), getY() - 1);
+			m_movementPlan--;
+		}
+		else
+			m_movementPlan = 0;
+		break;
+	}
 }
 
 void DumbZombie::dieByFallOrBurnIfAppropriate()
 {
+	setDead();
+	getWorld()->playSound(SOUND_ZOMBIE_DIE);
+	getWorld()->increaseScore(1000);
+	if (!randInt(0, 9))
+		switch (getDirection())
+		{
+		case up:
+			if (!getWorld()->wouldOverlap(getX(), getY() + SPRITE_HEIGHT))
+				getWorld()->addActor(new VaccineGoodie(getWorld(), getX(), getY() + SPRITE_HEIGHT));
+			break;
+		case down:
+			if (!getWorld()->wouldOverlap(getX(), getY() - SPRITE_HEIGHT))
+				getWorld()->addActor(new VaccineGoodie(getWorld(), getX(), getY() - SPRITE_HEIGHT));
+			break;
+		case right:
+			if (!getWorld()->wouldOverlap(getX() + SPRITE_WIDTH, getY()))
+				getWorld()->addActor(new VaccineGoodie(getWorld(), getX() + SPRITE_WIDTH, getY()));
+			break;
+		case left:
+			if (!getWorld()->wouldOverlap(getX()-SPRITE_WIDTH, getY() ))
+				getWorld()->addActor(new VaccineGoodie(getWorld(), getX()-SPRITE_WIDTH, getY()));
+			break;
+		}
 }
 
 //============================================================SMART_ZOMBIE===========================================

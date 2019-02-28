@@ -113,7 +113,7 @@ int StudentWorld::move()
 			if (it != m_actors.end())
 				swap(*it, m_actors.back());
 			m_actors.pop_back();
-			it--;
+			it = m_actors.begin();
 		}
 	}
 	ostringstream oss;
@@ -153,16 +153,10 @@ void StudentWorld::recordLevelFinishedIfAllCitizensGone()
 void StudentWorld::activateOnAppropriateActors(Actor * a)
 {
 	for (int i = 0;i < m_actors.size();i++)
-	{
 		if (pow(a->getX() - m_actors[i]->getX(), 2) + pow(a->getY() - m_actors[i]->getY(), 2) <= 100&&a!=m_actors[i])
-		{
 			a->activateIfAppropriate(m_actors[i]);
-		}
-	}
 	if (pow(a->getX() - p->getX(), 2) + pow(a->getY() - p->getY(), 2) <= 100)
-	{
 		a->activateIfAppropriate(p);
-	}
 }
 
 bool StudentWorld::isAgentMovementBlockedAt(double x, double y, Actor* me) const
@@ -173,16 +167,34 @@ bool StudentWorld::isAgentMovementBlockedAt(double x, double y, Actor* me) const
 				y <= (((*it)->getY()) + SPRITE_HEIGHT - 1) && y >= ((*it)->getY() - SPRITE_HEIGHT + 1)
 				&& (x <= (((*it)->getX()) + SPRITE_WIDTH - 1) && x >= (*it)->getX() - SPRITE_WIDTH + 1))
 				return true;
+		if (p != me &&
+			y <= (p->getY() + SPRITE_HEIGHT - 1) && y >= (p->getY() - SPRITE_HEIGHT + 1)
+			&& (x <= ((p->getX()) + SPRITE_WIDTH - 1) && x >= p->getX() - SPRITE_WIDTH + 1))
+			return true;
 		return false;
 }
 
 bool StudentWorld::isFlameBlockedAt(double x, double y) const
 {
+	vector<Actor*>::const_iterator it;
+	for (it = m_actors.begin();it != m_actors.end();it++)
+		if ((*it)->blocksFlame() &&
+			y <= (((*it)->getY()) + SPRITE_HEIGHT - 1) && y >= ((*it)->getY() - SPRITE_HEIGHT + 1)
+			&& (x <= (((*it)->getX()) + SPRITE_WIDTH - 1) && x >= (*it)->getX() - SPRITE_WIDTH + 1))
+			return true;
 	return false;
 }
 
 bool StudentWorld::isZombieVomitTriggerAt(double x, double y) const
 {
+	for (int i = 0;i < m_actors.size();i++)
+	{
+		if (m_actors[i]->triggersZombieVomit())
+			if (pow(m_actors[i]->getX() - x, 2) + pow(m_actors[i]->getY() - y, 2) <= 100)
+				return true;
+	}
+	if (pow(p->getX() - x, 2) + pow(p->getY() - y, 2) <= 100)
+		return true;
 	return false;
 }
 
@@ -198,5 +210,15 @@ bool StudentWorld::locateNearestCitizenTrigger(double x, double y, double & othe
 
 bool StudentWorld::locateNearestCitizenThreat(double x, double y, double & otherX, double & otherY, double & distance) const
 {
+	return false;
+}
+
+bool StudentWorld::wouldOverlap(double x, double y)
+{
+	for (int i = 0;i < m_actors.size();i++)
+		if (pow(x - m_actors[i]->getX(), 2) + pow(y - m_actors[i]->getY(), 2) <= 100)
+			return true;
+	if (pow(x - p->getX(), 2) + pow(y - p->getY(), 2) <= 100)
+		return true;
 	return false;
 }

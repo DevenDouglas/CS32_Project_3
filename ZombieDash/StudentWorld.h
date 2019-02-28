@@ -40,7 +40,7 @@ public:
 	// For each actor overlapping a, activate a if appropriate.
 	void activateOnAppropriateActors(Actor* a);
 
-	// DONE Is an agent blocked from moving to the indicated location?
+	// Is an agent blocked from moving to the indicated location?
 	bool isAgentMovementBlockedAt(double x, double y, Actor* me) const;
 
 	// Is creation of a flame blocked at the indicated location?
@@ -66,6 +66,7 @@ public:
 	// of the one nearest to (x,y).
 	bool locateNearestCitizenThreat(double x, double y, double& otherX, double& otherY, double& distance) const;
 
+	bool wouldOverlap(double x, double y);
 private:
 	std::vector<Actor*> m_actors;
 	int m_numCitizens;

@@ -54,10 +54,10 @@ public:
 	virtual bool blocksFlame() const { return false; };
 
 	// Does this object trigger landmines only when they're active?
-	virtual bool triggersOnlyActiveLandmines() const;
+	virtual bool triggersOnlyActiveLandmines() const { return false; };
 
 	// Can this object cause a zombie to vomit?
-	virtual bool triggersZombieVomit() const;
+	virtual bool triggersZombieVomit() const { return false; };
 
 	// Is this object a threat to citizens?
 	virtual bool threatensCitizens() const;
@@ -130,6 +130,9 @@ public:
 	virtual void doSomething();
 	virtual void activateIfAppropriate(Actor* a);
 	virtual void dieByFallOrBurnIfAppropriate();
+private:
+	int safetyTicks;
+	bool isActive;
 };
 
 class Goodie : public ActivatingObject
@@ -172,7 +175,7 @@ class Agent : public Actor
 public:
 	Agent(StudentWorld* w, int imageID, double x, double y);
 	virtual bool blocksMovement() const;
-	virtual bool triggersOnlyActiveLandmines() const;
+	virtual bool triggersOnlyActiveLandmines() const { return true; };
 };
 
 class Human : public Agent
@@ -180,7 +183,7 @@ class Human : public Agent
 public:
 	Human(StudentWorld* w, int imageID, double x, double y);
 	virtual void beVomitedOnIfAppropriate();
-	virtual bool triggersZombieVomit() const;
+	virtual bool triggersZombieVomit() const { return true; };
 
 	// Make this human uninfected by vomit.
 	void clearInfection();
@@ -211,7 +214,7 @@ public:
 	void increaseFlameCharges() { m_numFlameCharges+=5; };
 
 	// Increase the number of landmines the object has.
-	void increaseLandmines() { m_numLandmines++; };
+	void increaseLandmines() { m_numLandmines+=2; };
 
 	// How many vaccines does the object have?
 	int getNumVaccines() const { return m_numVaccines; };
@@ -249,6 +252,9 @@ public:
 	DumbZombie(StudentWorld* w, double x, double y);
 	virtual void doSomething();
 	virtual void dieByFallOrBurnIfAppropriate();
+private:
+	bool m_stuck;
+	int m_movementPlan;
 };
 
 class SmartZombie : public Zombie
