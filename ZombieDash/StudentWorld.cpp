@@ -131,12 +131,10 @@ int StudentWorld::move()
 void StudentWorld::cleanUp()
 {
 	for (int i = 0;i < m_actors.size();++i)
-	{
-		
 		delete m_actors[i];
-	}
+	if (!m_actors.empty())
+		delete p;
 	m_actors.clear();
-	delete p;
 }
 
 void StudentWorld::recordCitizenGone()

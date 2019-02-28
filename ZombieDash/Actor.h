@@ -65,7 +65,7 @@ public:
 	// Does this object trigger citizens to follow it or flee it?
 	virtual bool triggersCitizens() const;
 
-
+	virtual bool isPlayer() const { return false; };
 private:
 	bool m_dead;
 	StudentWorld* m_world;
@@ -224,6 +224,8 @@ public:
 
 	// How many landmines does the object have?
 	int getNumLandmines() const { return m_numLandmines; };
+
+	virtual bool isPlayer() const { return true; };
 
 private:
 	int m_numVaccines;

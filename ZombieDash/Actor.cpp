@@ -134,7 +134,7 @@ void Vomit::activateIfAppropriate(Actor * a)
 
 //============================================================LANDMINE===========================================
 Landmine::Landmine(StudentWorld * w, double x, double y)
-	:ActivatingObject(w,IID_LANDMINE,x,y,1,right),safetyTicks(0),isActive(false)
+	:ActivatingObject(w,IID_LANDMINE,x,y,1,right),safetyTicks(30),isActive(false)
 {
 }
 
@@ -163,15 +163,10 @@ void Landmine::dieByFallOrBurnIfAppropriate()
 {
 	setDead();
 	getWorld()->playSound(SOUND_LANDMINE_EXPLODE);
-	getWorld()->addActor(new Flame(getWorld(), getX() + SPRITE_WIDTH, getY() + SPRITE_HEIGHT, up));
-	getWorld()->addActor(new Flame(getWorld(), getX(), getY() + SPRITE_HEIGHT, up));
-	getWorld()->addActor(new Flame(getWorld(), getX() - SPRITE_WIDTH, getY() + SPRITE_HEIGHT, up));
-	getWorld()->addActor(new Flame(getWorld(), getX() - SPRITE_WIDTH, getY(), up));
-	getWorld()->addActor(new Flame(getWorld(), getX() - SPRITE_WIDTH, getY() - SPRITE_HEIGHT, up));
-	getWorld()->addActor(new Flame(getWorld(), getX(), getY() - SPRITE_HEIGHT, up));
-	getWorld()->addActor(new Flame(getWorld(), getX() + SPRITE_WIDTH, getY() - SPRITE_HEIGHT, up));
-	getWorld()->addActor(new Flame(getWorld(), getX() + SPRITE_WIDTH, getY(), up));
-	getWorld()->addActor(new Flame(getWorld(), getX(), getY(),up));
+	for (int x = getX() - SPRITE_WIDTH;x <= getX() + SPRITE_WIDTH;x += SPRITE_WIDTH)
+		for (int y = getY() - SPRITE_HEIGHT;y <= getY() + SPRITE_HEIGHT;y += SPRITE_HEIGHT)
+			if (!getWorld()->isFlameBlockedAt(x, y))
+				getWorld()->addActor(new Flame(getWorld(), x, y, up));
 	getWorld()->addActor(new Pit(getWorld(), getX(), getY()));
 }
 
@@ -268,6 +263,8 @@ Human::Human(StudentWorld * w, int imageID, double x, double y)
 
 void Human::beVomitedOnIfAppropriate()
 {
+	if (!m_isInfected && !isPlayer())
+		getWorld()->playSound(SOUND_CITIZEN_INFECTED);
 	m_isInfected = true;
 	if (getInfectionDuration() == 0)
 		m_infection = 1;
@@ -393,6 +390,7 @@ void Penelope::dieByFallOrBurnIfAppropriate()
 {
 	setDead();
 	getWorld()->playSound(SOUND_PLAYER_DIE);
+	getWorld()->decLives();
 }
 
 void Penelope::pickUpGoodieIfAppropriate(Goodie * g)
@@ -421,6 +419,7 @@ void Citizen::useExitIfAppropriate()
 
 void Citizen::dieByFallOrBurnIfAppropriate()
 {
+	setDead();
 }
 
 //============================================================ZOMBIE===========================================
