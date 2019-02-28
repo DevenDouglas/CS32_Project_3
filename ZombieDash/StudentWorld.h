@@ -41,7 +41,7 @@ public:
 	void activateOnAppropriateActors(Actor* a);
 
 	// Is an agent blocked from moving to the indicated location?
-	bool isAgentMovementBlockedAt(double x, double y) const;
+	bool isAgentMovementBlockedAt(double x, double y, Actor* me) const;
 
 	// Is creation of a flame blocked at the indicated location?
 	bool isFlameBlockedAt(double x, double y) const;

@@ -4,6 +4,9 @@
 #include "Level.h"
 #include <string>
 #include <vector>
+#include <iostream>
+#include <sstream>
+#include <iomanip>
 using namespace std;
 
 GameWorld* createStudentWorld(string assetPath)
@@ -27,60 +30,57 @@ StudentWorld::~StudentWorld()
 int StudentWorld::init()
 {
 	Level lev(assetPath());
-	string levelFile = "level02.txt";
+	ostringstream oss;
+	oss << "level0" << getLevel() << ".txt";
+	string levelFile = oss.str();
 	Level::LoadResult result = lev.loadLevel(levelFile);
 	if (result == Level::load_fail_file_not_found)
-		cerr << "Cannot find level01.txt data file" << endl;
+		cerr << "Cannot find"<<levelFile<< "data file" << endl;
 	else if (result == Level::load_fail_bad_format)
 		cerr << "Your level was improperly formatted" << endl;
 	else if (result == Level::load_success)
 	{
 		cerr << "Successfully loaded level" << endl;
 		for (int i = 0;i < 16;i++)
-		{
-			for (int j = 0;j < 16;j++)
-			{
-				Level::MazeEntry ge = lev.getContentsOf(i, j); // level_x=i, level_y=j
-				if (ge == Level::player)
-				{
-					m_actors.push_back(new Penelope(this,i * 16, j * 16));
-				}
-			}
-		}
-		for (int i = 0;i < 16;i++)
 			for (int j = 0;j < 16;j++)
 			{
 				Level::MazeEntry ge = lev.getContentsOf(i, j);// level_x=i, level_y=j
 				switch (ge)                                    // so x=16i and y=16j   
 				{
-					/*case Level::empty:
+					case Level::empty:
 						//do nothing
 						break;
-					case Level::smart_zombie:
-						cout << "Location 80,160 starts with a smart zombie" << endl;
+					case Level::wall:
+						addActor(new Wall(this, i * 16, j * 16));
+						break;
+					case Level::player:
+						addActor(new Penelope(this, i * 16, j * 16));
+					case Level::citizen:
+						break;
+						addActor(new Citizen(this, i * 16, j * 16));
+						break;
+					case Level::pit:
+						addActor(new Pit(this, i * 16, j * 16));
+						break;
+					case Level::vaccine_goodie:
+						addActor(new VaccineGoodie(this, i * 16, j * 16));
+						break;
+					case Level::gas_can_goodie:
+						addActor(new GasCanGoodie(this, i * 16, j * 16));
+						break;
+					case Level::landmine_goodie:
+						addActor(new LandmineGoodie(this, i * 16, j * 16));
+						break;
+					case Level::exit:
+						addActor(new Exit(this, i * 16, j * 16));
 						break;
 					case Level::dumb_zombie:
-						cout << "Location 80,160 starts with a dumb zombie" << endl;
-						break;*/
-						//case Level::player:
-							//cout << "wooh!" << endl;
-							//m_actors.push_back(new Penelope(i * 16, j * 16, this));
-							//break;
-						/*case Level::exit:
-							cout << "Location 80,160 is where an exit is" << endl;
-							break;*/
-				case Level::wall:
-					//cout << "wall!" << endl;
-					m_actors.push_back(new Wall(this,i * 16, j * 16));
-					break;
-					/*case Level::pit:
-						cout << "Location 80,160 has a pit in the ground" << endl;
-						break;       // etc…   }  */
-				default:
-					//do nothing
-					break;
+						addActor(new DumbZombie(this, i * 16, j * 16));
+						break;
+					case Level::smart_zombie:
+						addActor(new SmartZombie(this, i * 16, j * 16));
+						break;
 				}
-				//cout << m_actors.size() << endl;
 			}
 		return GWSTATUS_CONTINUE_GAME;
 	}
@@ -117,9 +117,15 @@ void StudentWorld::activateOnAppropriateActors(Actor * a)
 {
 }
 
-bool StudentWorld::isAgentMovementBlockedAt(double x, double y) const
+bool StudentWorld::isAgentMovementBlockedAt(double x, double y, Actor* me) const
 {
-	return false;
+		vector<Actor*>::const_iterator it;
+		for (it = m_actors.begin();it != m_actors.end();it++)
+			if ((*it) != me && (*it)->blocksMovement() &&
+				y <= (((*it)->getY()) + SPRITE_HEIGHT - 1) && y >= ((*it)->getY() - SPRITE_HEIGHT + 1)
+				&& (x <= (((*it)->getX()) + SPRITE_WIDTH - 1) && x >= (*it)->getX() - SPRITE_WIDTH + 1))
+				return true;
+		return false;
 }
 
 bool StudentWorld::isFlameBlockedAt(double x, double y) const

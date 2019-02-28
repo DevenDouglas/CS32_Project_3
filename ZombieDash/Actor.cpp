@@ -245,7 +245,7 @@ Agent::Agent(StudentWorld * w, int imageID, double x, double y)
 
 bool Agent::blocksMovement() const
 {
-	return false;
+	return true;
 }
 
 bool Agent::triggersOnlyActiveLandmines() const
@@ -292,22 +292,22 @@ void Penelope::doSomething()
 		{
 		case KEY_PRESS_DOWN:
 			setDirection(down);
-			//if (safeToMove(getX(), getY() - 4))
+			if (!getWorld()->isAgentMovementBlockedAt(getX(), getY() - 4, this))
 				moveTo(getX(), getY() - 4);
 			break;
 		case KEY_PRESS_UP:
 			setDirection(up);
-			//if (safeToMove(getX(), getY() + 4))
+			if (!getWorld()->isAgentMovementBlockedAt(getX(), getY() + 4, this))
 				moveTo(getX(), getY() + 4);
 			break;
 		case KEY_PRESS_LEFT:
 			setDirection(left);
-			//if (safeToMove(getX() - 4, getY()))
+			if (!getWorld()->isAgentMovementBlockedAt(getX() - 4, getY(), this))
 				moveTo(getX() - 4, getY());
 			break;
 		case KEY_PRESS_RIGHT:
 			setDirection(right);
-			//if (safeToMove(getX() + 4, getY()))
+			if (!getWorld()->isAgentMovementBlockedAt(getX() + 4, getY(), this))
 				moveTo(getX() + 4, getY());
 			break;
 		}
