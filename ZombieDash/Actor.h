@@ -1,86 +1,245 @@
-#ifndef ACTOR_H_
-#define ACTOR_H_
+// Possible interfaces for actors.  You may use all, some, or none
+// of this, as you wish.
+
+// One of the design goals is to reduce the coupling between StudentWorld.h
+// and Actor.h as much as possible.  Notice that in fact, Actor.h
+// does not need to include Student.h at all.
+
+#ifndef ACTOR_INCLUDED
+#define ACTOR_INCLUDED
+
 #include "GraphObject.h"
+
 class StudentWorld;
-// Students:  Add code to this file, Actor.cpp, StudentWorld.h, and StudentWorld.cpp
-/*
-GraphObject(int imageID, double startX, double startY, Direction dir = 0, int depth = 0, double size = 1.0)
-	: m_imageID(imageID), m_x(startX), m_y(startY), m_destX(startX), m_destY(startY),
-	m_animationNumber(0), m_direction(dir), m_depth(depth), m_size(size)
-{
-	if (m_size <= 0)
-		m_size = 1;
+class Goodie;
+class Penelope;
 
-	getGraphObjects(m_depth).insert(this);
-	int     m_imageID;
-	double  m_x;
-	double  m_y;
-	double  m_destX;
-	double  m_destY;
-	int     m_animationNumber;
-	Direction   m_direction;
-	int     m_depth;
-	double  m_size;
-}*/
-
-class Actor: public GraphObject
+class Actor : public GraphObject
 {
 public:
-	Actor(int imageID, double startX, double startY, StudentWorld* myWorld);
-	virtual void doSomething()=0;
-	StudentWorld * getWorld() { return m_world; };
-	bool isAlive() { return m_alive; };
-	void generateBoundLine(double startPix, double endPix, std::vector<double>& line);
+	Actor(StudentWorld* w, int imageID, double x, double y, int dir, int depth);
+
+	// Action to perform for each tick.
+	virtual void doSomething() = 0;
+
+	// Is this actor dead?
+	bool isDead() const;
+
+	// Mark this actor as dead.
+	void setDead();
+
+	// Get this actor's world
+	StudentWorld* getWorld() const;
+
+	// If this is an activated object, perform its effect on a (e.g., for an
+	// Exit have a use the exit).
+	virtual void activateIfAppropriate(Actor* a);
+
+	// If this object uses exits, use the exit.
+	virtual void useExitIfAppropriate();
+
+	// If this object can die by falling into a pit or burning, die.
+	virtual void dieByFallOrBurnIfAppropriate();
+
+	// If this object can be infected by vomit, get infected.
+	virtual void beVomitedOnIfAppropriate();
+
+	// If this object can pick up goodies, pick up g
+	virtual void pickUpGoodieIfAppropriate(Goodie* g);
+
+	// Does this object block agent movement?
+	virtual bool blocksMovement() const;
+
+	// Does this object block flames?
+	virtual bool blocksFlame() const;
+
+	// Does this object trigger landmines only when they're active?
+	virtual bool triggersOnlyActiveLandmines() const;
+
+	// Can this object cause a zombie to vomit?
+	virtual bool triggersZombieVomit() const;
+
+	// Is this object a threat to citizens?
+	virtual bool threatensCitizens() const;
+
+	// Does this object trigger citizens to follow it or flee it?
+	virtual bool triggersCitizens() const;
 private:
+	bool m_dead;
 	StudentWorld* m_world;
-	bool m_alive;
 };
 
-class Biological : public Actor
+class Wall : public Actor
 {
 public:
-	Biological(int imageID, double startX, double startY, StudentWorld* myWorld);
-	virtual void doSomething() = 0;
-private:
-};
-//class Zombie: public Biological
-class Penelope : public Biological
-{
-public:
-	Penelope(double startX, double startY, StudentWorld* myWorld);
+	Wall(StudentWorld* w, double x, double y);
 	virtual void doSomething();
-private:
+	virtual bool blocksMovement() const;
+	virtual bool blocksFlame() const;
 };
-//class SmartZombie:public Zombie
-//class DumbZombie:public Zombie
-//class Citizen: public Biological
-class Item : public Actor
+
+class ActivatingObject : public Actor
 {
 public:
-	Item(int imageID, double startX, double startY, StudentWorld* myWorld);
-	virtual void doSomething() = 0;
+	ActivatingObject(StudentWorld* w, int imageID, double x, double y, int depth, int dir);
 };
-//class Goodie: public Item
-//class GasCan: public Goodie
-//class Vaccine: public Goodie
-//class LandmineGoodie: public Goodie
-class Hazard : public Item
+
+class Exit : public ActivatingObject
 {
 public:
-	Hazard(int imageID, double startX, double startY, StudentWorld* myWorld);
-	virtual void doSomething() = 0;
-private:
-};
-//class Pit: public Hazard
-//class Flame: public Hazard
-//class Vomit: public Hazard
-//class Landmine: public Hazard
-class Wall : public Hazard
-{
-public:
-	Wall(double startX, double startY, StudentWorld* myWorld);
+	Exit(StudentWorld* w, double x, double y);
 	virtual void doSomething();
-private:
+	virtual void activateIfAppropriate(Actor* a);
+	virtual bool blocksFlame() const;
 };
-//class Exit: public Hazard
-#endif // ACTOR_H_
+
+class Pit : public ActivatingObject
+{
+public:
+	Pit(StudentWorld* w, double x, double y);
+	virtual void doSomething();
+	virtual void activateIfAppropriate(Actor* a);
+};
+
+class Flame : public ActivatingObject
+{
+public:
+	Flame(StudentWorld* w, double x, double y, int dir);
+	virtual void doSomething();
+	virtual void activateIfAppropriate(Actor* a);
+};
+
+class Vomit : public ActivatingObject
+{
+public:
+	Vomit(StudentWorld* w, double x, double y);
+	virtual void doSomething();
+	virtual void activateIfAppropriate(Actor* a);
+};
+
+class Landmine : public ActivatingObject
+{
+public:
+	Landmine(StudentWorld* w, double x, double y);
+	virtual void doSomething();
+	virtual void activateIfAppropriate(Actor* a);
+	virtual void dieByFallOrBurnIfAppropriate();
+};
+
+class Goodie : public ActivatingObject
+{
+public:
+	Goodie(StudentWorld* w, int imageID, double x, double y);
+	virtual void activateIfAppropriate(Actor* a);
+	virtual void dieByFallOrBurnIfAppropriate();
+
+	// Have p pick up this goodie.
+	virtual void pickUp(Penelope* p) = 0;
+};
+
+class VaccineGoodie : public Goodie
+{
+public:
+	VaccineGoodie(StudentWorld* w, double x, double y);
+	virtual void doSomething();
+	virtual void pickUp(Penelope* p);
+};
+
+class GasCanGoodie : public Goodie
+{
+public:
+	GasCanGoodie(StudentWorld* w, double x, double y);
+	virtual void doSomething();
+	virtual void pickUp(Penelope* p);
+};
+
+class LandmineGoodie : public Goodie
+{
+public:
+	LandmineGoodie(StudentWorld* w, double x, double y);
+	virtual void doSomething();
+	virtual void pickUp(Penelope* p);
+};
+
+class Agent : public Actor
+{
+public:
+	Agent(StudentWorld* w, int imageID, double x, double y);
+	virtual bool blocksMovement() const;
+	virtual bool triggersOnlyActiveLandmines() const;
+};
+
+class Human : public Agent
+{
+public:
+	Human(StudentWorld* w, int imageID, double x, double y);
+	virtual void beVomitedOnIfAppropriate();
+	virtual bool triggersZombieVomit() const;
+
+	// Make this human uninfected by vomit.
+	void clearInfection();
+
+	// How many ticks since this human was infected by vomit?
+	int getInfectionDuration() const;
+};
+
+class Penelope : public Human
+{
+public:
+	Penelope(StudentWorld* w, double x, double y);
+	virtual void doSomething();
+	virtual void useExitIfAppropriate();
+	virtual void dieByFallOrBurnIfAppropriate();
+	virtual void pickUpGoodieIfAppropriate(Goodie* g);
+
+	// Increase the number of vaccines the object has.
+	void increaseVaccines();
+
+	// Increase the number of flame charges the object has.
+	void increaseFlameCharges();
+
+	// Increase the number of landmines the object has.
+	void increaseLandmines();
+
+	// How many vaccines does the object have?
+	int getNumVaccines() const;
+
+	// How many flame charges does the object have?
+	int getNumFlameCharges() const;
+
+	// How many landmines does the object have?
+	int getNumLandmines() const;
+};
+
+class Citizen : public Human
+{
+public:
+	Citizen(StudentWorld* w, double x, double y);
+	virtual void doSomething();
+	virtual void useExitIfAppropriate();
+	virtual void dieByFallOrBurnIfAppropriate();
+};
+
+class Zombie : public Agent
+{
+public:
+	Zombie(StudentWorld* w, double x, double y);
+};
+
+class DumbZombie : public Zombie
+{
+public:
+	DumbZombie(StudentWorld* w, double x, double y);
+	virtual void doSomething();
+	virtual void dieByFallOrBurnIfAppropriate();
+};
+
+class SmartZombie : public Zombie
+{
+public:
+	SmartZombie(StudentWorld* w, double x, double y);
+	virtual void doSomething();
+	virtual void dieByFallOrBurnIfAppropriate();
+};
+
+#endif // ACTOR_INCLUDED

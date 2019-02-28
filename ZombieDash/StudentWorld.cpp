@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 using namespace std;
+
 GameWorld* createStudentWorld(string assetPath)
 {
 	return new StudentWorld(assetPath);
@@ -26,7 +27,7 @@ StudentWorld::~StudentWorld()
 int StudentWorld::init()
 {
 	Level lev(assetPath());
-	string levelFile = "level01.txt";
+	string levelFile = "level02.txt";
 	Level::LoadResult result = lev.loadLevel(levelFile);
 	if (result == Level::load_fail_file_not_found)
 		cerr << "Cannot find level01.txt data file" << endl;
@@ -42,8 +43,7 @@ int StudentWorld::init()
 				Level::MazeEntry ge = lev.getContentsOf(i, j); // level_x=i, level_y=j
 				if (ge == Level::player)
 				{
-					m_actors.push_back(new Penelope(i * 16, j * 16, this));
-					cout << "flag found!" << endl;
+					m_actors.push_back(new Penelope(this,i * 16, j * 16));
 				}
 			}
 		}
@@ -71,7 +71,7 @@ int StudentWorld::init()
 							break;*/
 				case Level::wall:
 					//cout << "wall!" << endl;
-					m_actors.push_back(new Wall(i * 16, j * 16, this));
+					m_actors.push_back(new Wall(this,i * 16, j * 16));
 					break;
 					/*case Level::pit:
 						cout << "Location 80,160 has a pit in the ground" << endl;
@@ -80,7 +80,7 @@ int StudentWorld::init()
 					//do nothing
 					break;
 				}
-				cout << m_actors.size() << endl;
+				//cout << m_actors.size() << endl;
 			}
 		return GWSTATUS_CONTINUE_GAME;
 	}
@@ -107,4 +107,42 @@ void StudentWorld::cleanUp()
 	}
 	m_actors.clear();
 	//cout << "squeaky clean" << endl;
+}
+
+void StudentWorld::recordLevelFinishedIfAllCitizensGone()
+{
+}
+
+void StudentWorld::activateOnAppropriateActors(Actor * a)
+{
+}
+
+bool StudentWorld::isAgentMovementBlockedAt(double x, double y) const
+{
+	return false;
+}
+
+bool StudentWorld::isFlameBlockedAt(double x, double y) const
+{
+	return false;
+}
+
+bool StudentWorld::isZombieVomitTriggerAt(double x, double y) const
+{
+	return false;
+}
+
+bool StudentWorld::locateNearestVomitTrigger(double x, double y, double & otherX, double & otherY, double & distance)
+{
+	return false;
+}
+
+bool StudentWorld::locateNearestCitizenTrigger(double x, double y, double & otherX, double & otherY, double & distance, bool & isThreat) const
+{
+	return false;
+}
+
+bool StudentWorld::locateNearestCitizenThreat(double x, double y, double & otherX, double & otherY, double & distance) const
+{
+	return false;
 }

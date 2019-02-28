@@ -1,33 +1,285 @@
 #include "Actor.h"
 #include "StudentWorld.h"
 #include <vector>
-#include <algorithm>
 using namespace std;
 
-// Students:  Add code to this file, Actor.h, StudentWorld.h, and StudentWorld.cpp
-//=========================ACTOR========================================================
-Actor::Actor(int imageID, double startX, double startY, StudentWorld* myWorld)
-	:GraphObject(imageID,startX,startY, right, 0 , 1.0)
-{
-	m_world = myWorld;
-	m_alive = true;
-}
-/*
-void Actor::generateBoundLine(double startPix, double endPix, vector<double>& line)
-{
-	line.clear();
-	for (double i = startPix;i < endPix;i++)
-		line.push_back(i);
-}*/
 
-//===========================BIOLOGICAL=================================================
-Biological::Biological(int imageID, double startX, double startY, StudentWorld* myWorld)
-	:Actor(imageID,startX, startY, myWorld)
+//============================================================ACTOR===========================================
+Actor::Actor(StudentWorld * w, int imageID, double x, double y, int dir, int depth)
+	:GraphObject(imageID,x,y,dir,depth), m_dead(false),m_world(w)
 {
 }
-//=========================PENELOPE=====================================================
-Penelope::Penelope(double startX, double startY, StudentWorld* myWorld)
-	:Biological(IID_PLAYER,startX,startY, myWorld)
+
+bool Actor::isDead() const
+{
+	return m_dead;
+}
+
+void Actor::setDead()
+{
+	m_dead = true;
+}
+
+StudentWorld * Actor::getWorld() const
+{
+	return m_world;
+}
+
+void Actor::activateIfAppropriate(Actor * a)
+{
+}
+
+void Actor::useExitIfAppropriate()
+{
+}
+
+void Actor::dieByFallOrBurnIfAppropriate()
+{
+}
+
+void Actor::beVomitedOnIfAppropriate()
+{
+}
+
+void Actor::pickUpGoodieIfAppropriate(Goodie * g)
+{
+}
+
+bool Actor::blocksMovement() const
+{
+	return false;
+}
+
+bool Actor::blocksFlame() const
+{
+	return false;
+}
+
+bool Actor::triggersOnlyActiveLandmines() const
+{
+	return false;
+}
+
+bool Actor::triggersZombieVomit() const
+{
+	return false;
+}
+
+bool Actor::threatensCitizens() const
+{
+	return false;
+}
+
+bool Actor::triggersCitizens() const
+{
+	return false;
+}
+
+//============================================================WALL==========================================
+Wall::Wall(StudentWorld * w, double x, double y)
+	:Actor(w,IID_WALL,x,y,right,0)
+{
+}
+
+void Wall::doSomething()
+{
+	//does nothing
+}
+
+bool Wall::blocksMovement() const
+{
+	return true;
+}
+
+bool Wall::blocksFlame() const
+{
+	return true;
+}
+
+//=======================================================ACTIVATING_OBJECT==================================
+ActivatingObject::ActivatingObject(StudentWorld * w, int imageID, double x, double y, int depth, int dir)
+	:Actor(w,imageID,x,y,dir,depth)
+{
+}
+
+//============================================================EXIT===========================================
+Exit::Exit(StudentWorld * w, double x, double y)
+	:ActivatingObject(w,IID_EXIT,x,y,1,right)
+{
+}
+
+void Exit::doSomething()
+{
+}
+
+void Exit::activateIfAppropriate(Actor * a)
+{
+}
+
+bool Exit::blocksFlame() const
+{
+	return false;
+}
+
+//============================================================PIT==========================================
+Pit::Pit(StudentWorld * w, double x, double y)
+	:ActivatingObject(w,IID_PIT,x,y,0,right)
+{
+}
+
+void Pit::doSomething()
+{
+}
+
+void Pit::activateIfAppropriate(Actor * a)
+{
+}
+
+//============================================================FLAME===========================================
+Flame::Flame(StudentWorld * w, double x, double y, int dir)
+	:ActivatingObject(w,IID_FLAME,x,y,0,dir)
+{
+}
+
+void Flame::doSomething()
+{
+}
+
+void Flame::activateIfAppropriate(Actor * a)
+{
+}
+
+//============================================================VOMIT===========================================
+Vomit::Vomit(StudentWorld * w, double x, double y)
+	:ActivatingObject(w,IID_VOMIT,x,y,0,right)
+{
+}
+
+void Vomit::doSomething()
+{
+}
+
+void Vomit::activateIfAppropriate(Actor * a)
+{
+}
+
+//============================================================LANDMINE===========================================
+Landmine::Landmine(StudentWorld * w, double x, double y)
+	:ActivatingObject(w,IID_LANDMINE,x,y,1,right)
+{
+}
+
+void Landmine::doSomething()
+{
+}
+
+void Landmine::activateIfAppropriate(Actor * a)
+{
+}
+
+void Landmine::dieByFallOrBurnIfAppropriate()
+{
+}
+
+//============================================================GOODIE===========================================
+Goodie::Goodie(StudentWorld * w, int imageID, double x, double y)
+	:ActivatingObject(w,imageID,x,y,1,right)
+{
+}
+
+void Goodie::activateIfAppropriate(Actor * a)
+{
+}
+
+void Goodie::dieByFallOrBurnIfAppropriate()
+{
+}
+
+//============================================================VACCINE_GOODIE===========================================
+VaccineGoodie::VaccineGoodie(StudentWorld * w, double x, double y)
+	:Goodie(w,IID_VACCINE_GOODIE,x,y)
+{
+}
+
+void VaccineGoodie::doSomething()
+{
+}
+
+void VaccineGoodie::pickUp(Penelope * p)
+{
+}
+
+//============================================================GAS_CAN_GOODIE===========================================
+GasCanGoodie::GasCanGoodie(StudentWorld * w, double x, double y)
+	:Goodie(w,IID_GAS_CAN_GOODIE,x,y)
+{
+}
+
+void GasCanGoodie::doSomething()
+{
+}
+
+void GasCanGoodie::pickUp(Penelope * p)
+{
+}
+
+//============================================================LANDMINE_GOODIE===========================================
+LandmineGoodie::LandmineGoodie(StudentWorld * w, double x, double y)
+	:Goodie(w,IID_LANDMINE_GOODIE,x,y)
+{
+}
+
+void LandmineGoodie::doSomething()
+{
+}
+
+void LandmineGoodie::pickUp(Penelope * p)
+{
+}
+
+//============================================================AGENT===========================================
+Agent::Agent(StudentWorld * w, int imageID, double x, double y)
+	:Actor(w,imageID,x,y,right,0)
+{
+}
+
+bool Agent::blocksMovement() const
+{
+	return false;
+}
+
+bool Agent::triggersOnlyActiveLandmines() const
+{
+	return false;
+}
+
+//============================================================HUMAN===========================================
+Human::Human(StudentWorld * w, int imageID, double x, double y)
+	:Agent(w,imageID,x,y)
+{
+}
+
+void Human::beVomitedOnIfAppropriate()
+{
+}
+
+bool Human::triggersZombieVomit() const
+{
+	return false;
+}
+
+void Human::clearInfection()
+{
+}
+
+int Human::getInfectionDuration() const
+{
+	return 0;
+}
+
+//============================================================PENELOPE===========================================
+Penelope::Penelope(StudentWorld * w, double x, double y)
+	:Human(w,IID_PLAYER,x,y)
 {
 }
 
@@ -36,95 +288,120 @@ void Penelope::doSomething()
 	int button;
 	if (getWorld()->getKey(button))
 	{
-		vector<Actor*> myVec(getWorld()->getActors());
-		vector<double> myLine;
-		cout << myVec.size();
-		bool safeToMove = true;
 		switch (button)
 		{
 		case KEY_PRESS_DOWN:
-		{
 			setDirection(down);
-			int destX = getX();
-			int destY = getY() - 4;
-			vector<Actor*>::iterator it;
-			for (it = myVec.begin();it != myVec.end();it++)
-				if (destY <= ((*it)->getY() + SPRITE_HEIGHT - 1) && destY >= (*it)->getY()
-					&& (destX <= (*it)->getX() + SPRITE_WIDTH - 1) && destX >= (*it)->getX())
-				{
-					safeToMove = false;
-					break;
-				}
-			if (safeToMove)
-				moveTo(destX, destY);
-			/*
-
-
-			generateBoundLine(getX(), getX() + SPRITE_WIDTH - 1, myLine);
-			for (int i = 1;i < myVec.size();i++)
-			{
-				cout << "a lot of fucking tests" << endl;
-				if (getY() - 4 != myVec[i]->getY() + SPRITE_HEIGHT - 1)
-					if (find(myLine.begin(), myLine.end(), myVec[i]->getX()) == myLine.end() && //along myLine, we don't find the left corner
-						find(myLine.begin(), myLine.end(), myVec[i]->getX() + SPRITE_WIDTH - 1) == myLine.end()) //'''' right corner
-					{
-						cout << "movin'" << endl;
-						moveTo(getX(), getY() - 4);
-						break;
-					}
-				/*if (getY() - 4 == myVec[i]->getY())
-				{
-					cout << "guaco!" << endl;
-					flag = true;
-					break;
-				}
-			}
-			if (!flag)
+			//if (safeToMove(getX(), getY() - 4))
 				moveTo(getX(), getY() - 4);
-			}*/
 			break;
-		}
 		case KEY_PRESS_UP:
 			setDirection(up);
-			for (int i = 0;i < myVec.size();i++)
-				if (getY() + 4 == myVec[i]->getY())
-					break;
-			moveTo(getX(), getY() + 4);
+			//if (safeToMove(getX(), getY() + 4))
+				moveTo(getX(), getY() + 4);
 			break;
 		case KEY_PRESS_LEFT:
 			setDirection(left);
-			for (int i = 0;i < myVec.size();i++)
-				if (getX() - 4 == myVec[i]->getX())
-					break;
-			moveTo(getX() - 4, getY());
+			//if (safeToMove(getX() - 4, getY()))
+				moveTo(getX() - 4, getY());
 			break;
 		case KEY_PRESS_RIGHT:
 			setDirection(right);
-			for (int i = 0;i < myVec.size();i++)
-				if (getX() + 4 == myVec[i]->getX())
-					break;
-			moveTo(getX() + 4, getY());
+			//if (safeToMove(getX() + 4, getY()))
+				moveTo(getX() + 4, getY());
 			break;
 		}
 	}
 
 }
-//===============================ITEM===================================================
-Item::Item(int imageID, double startX, double startY, StudentWorld * myWorld)
-	:Actor(imageID,startX,startY,myWorld)
-{
-}
-//=================================HAZARD=================================================
-Hazard::Hazard(int imageID, double startX, double startY, StudentWorld* myWorld)
-	:Item(imageID, startX, startY, myWorld)
-{
-}
-//================================WALL======================================================
-Wall::Wall(double startX, double startY, StudentWorld* myWorld)
-	:Hazard(IID_WALL, startX, startY, myWorld)
+
+void Penelope::useExitIfAppropriate()
 {
 }
 
-void Wall::doSomething()
+void Penelope::dieByFallOrBurnIfAppropriate()
+{
+}
+
+void Penelope::pickUpGoodieIfAppropriate(Goodie * g)
+{
+}
+
+void Penelope::increaseVaccines()
+{
+}
+
+void Penelope::increaseFlameCharges()
+{
+}
+
+void Penelope::increaseLandmines()
+{
+}
+
+int Penelope::getNumVaccines() const
+{
+	return 0;
+}
+
+int Penelope::getNumFlameCharges() const
+{
+	return 0;
+}
+
+int Penelope::getNumLandmines() const
+{
+	return 0;
+}
+
+//============================================================CITIZEN===========================================
+Citizen::Citizen(StudentWorld * w, double x, double y)
+	:Human(w,IID_CITIZEN,x,y)
+{
+}
+
+void Citizen::doSomething()
+{
+}
+
+void Citizen::useExitIfAppropriate()
+{
+}
+
+void Citizen::dieByFallOrBurnIfAppropriate()
+{
+}
+
+//============================================================ZOMBIE===========================================
+Zombie::Zombie(StudentWorld * w, double x, double y)
+	:Agent(w,IID_ZOMBIE,x,y)
+{
+}
+
+//============================================================DUMB_ZOMBIE===========================================
+DumbZombie::DumbZombie(StudentWorld * w, double x, double y)
+	: Zombie(w, x, y)
+{
+}
+
+void DumbZombie::doSomething()
+{
+}
+
+void DumbZombie::dieByFallOrBurnIfAppropriate()
+{
+}
+
+//============================================================SMART_ZOMBIE===========================================
+SmartZombie::SmartZombie(StudentWorld * w, double x, double y)
+	:Zombie(w,x,y)
+{
+}
+
+void SmartZombie::doSomething()
+{
+}
+
+void SmartZombie::dieByFallOrBurnIfAppropriate()
 {
 }
