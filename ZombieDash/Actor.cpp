@@ -424,26 +424,19 @@ void Citizen::dieByFallOrBurnIfAppropriate()
 
 //============================================================ZOMBIE===========================================
 Zombie::Zombie(StudentWorld * w, double x, double y)
-	:Agent(w,IID_ZOMBIE,x,y)
+	:Agent(w,IID_ZOMBIE,x,y), m_stuck(false),m_movementPlan(0)
 {
 }
-
-//============================================================DUMB_ZOMBIE===========================================
-DumbZombie::DumbZombie(StudentWorld * w, double x, double y)
-	: Zombie(w, x, y), m_stuck(false),m_movementPlan(0)
+void Zombie::flipStuck()
 {
-}
-
-void DumbZombie::doSomething()
-{
-	if (isDead())
-		return;
-	if (m_stuck)
-	{
+	if (m_stuck == false)
+		m_stuck = true;
+	else
 		m_stuck = false;
-		return;
-	}
-	m_stuck = true;
+}
+
+bool Zombie::vomitIfAppropriate()
+{
 	switch (getDirection())
 	{
 	case right:
@@ -452,7 +445,7 @@ void DumbZombie::doSomething()
 			{
 				getWorld()->addActor(new Vomit(getWorld(), getX() + SPRITE_WIDTH, getY()));
 				getWorld()->playSound(SOUND_ZOMBIE_VOMIT);
-				return;
+				return true;
 			}
 		break;
 	case left:
@@ -461,72 +454,95 @@ void DumbZombie::doSomething()
 			{
 				getWorld()->addActor(new Vomit(getWorld(), getX() - SPRITE_WIDTH, getY()));
 				getWorld()->playSound(SOUND_ZOMBIE_VOMIT);
-				return;
+				return true;
 			}
 		break;
 	case up:
-		if (getWorld()->isZombieVomitTriggerAt(getX() , getY()+SPRITE_HEIGHT))
+		if (getWorld()->isZombieVomitTriggerAt(getX(), getY() + SPRITE_HEIGHT))
 			if (!randInt(0, 2))
 			{
 				getWorld()->addActor(new Vomit(getWorld(), getX(), getY() + SPRITE_HEIGHT));
 				getWorld()->playSound(SOUND_ZOMBIE_VOMIT);
-				return;
+				return true;
 			}
 		break;
 	case down:
-		if (getWorld()->isZombieVomitTriggerAt(getX(), getY()-SPRITE_HEIGHT))
+		if (getWorld()->isZombieVomitTriggerAt(getX(), getY() - SPRITE_HEIGHT))
 			if (!randInt(0, 2))
 			{
 				getWorld()->addActor(new Vomit(getWorld(), getX(), getY() - SPRITE_HEIGHT));
 				getWorld()->playSound(SOUND_ZOMBIE_VOMIT);
-				return;
+				return true;
 			}
 		break;
 	}
-	if (!m_movementPlan)
-	{
-		m_movementPlan = randInt(3, 10);
-		setDirection(90 *randInt(0, 3));
-	}
+	return false;
+
+}
+
+void Zombie::zombieShuffle()
+{
 	switch (getDirection())
 	{
 	case right:
 		if (!getWorld()->isAgentMovementBlockedAt(getX() + 1, getY(), this))
 		{
 			moveTo(getX() + 1, getY());
-			m_movementPlan--;
+			decPlan();
 		}
 		else
-			m_movementPlan = 0;
+			setPlan(0);
 		break;
 	case left:
 		if (!getWorld()->isAgentMovementBlockedAt(getX() - 1, getY(), this))
 		{
 			moveTo(getX() - 1, getY());
-			m_movementPlan--;
+			decPlan();
 		}
 		else
-			m_movementPlan = 0;
+			setPlan(0);
 		break;
 	case up:
-		if (!getWorld()->isAgentMovementBlockedAt(getX(), getY()+1, this))
+		if (!getWorld()->isAgentMovementBlockedAt(getX(), getY() + 1, this))
 		{
 			moveTo(getX(), getY() + 1);
-			m_movementPlan--;
+			decPlan();
 		}
 		else
-			m_movementPlan = 0;
+			setPlan(0);
 		break;
 	case down:
 		if (!getWorld()->isAgentMovementBlockedAt(getX(), getY() - 1, this))
 		{
 			moveTo(getX(), getY() - 1);
-			m_movementPlan--;
+			decPlan();
 		}
 		else
-			m_movementPlan = 0;
+			setPlan(0);
 		break;
 	}
+}
+//============================================================DUMB_ZOMBIE===========================================
+DumbZombie::DumbZombie(StudentWorld * w, double x, double y)
+	: Zombie(w, x, y)
+{
+}
+
+void DumbZombie::doSomething()
+{
+	if (isDead())
+		return;
+	flipStuck();
+	if (!isStuck())
+		return;
+	if (vomitIfAppropriate())
+		return;
+	if (!getPlan())
+	{
+		setPlan(randInt(3,10));
+		setDirection(90 *randInt(0, 3));
+	}
+	zombieShuffle();
 }
 
 void DumbZombie::dieByFallOrBurnIfAppropriate()
@@ -564,8 +580,49 @@ SmartZombie::SmartZombie(StudentWorld * w, double x, double y)
 
 void SmartZombie::doSomething()
 {
+	if (isDead())
+		return;
+	flipStuck();
+	if (!isStuck())
+		return;
+	if (vomitIfAppropriate())
+		return;
+	if (!getPlan())
+	{
+		setPlan(randInt(3, 10));
+		double x=0;
+		double y=0;
+		double distance=6401;
+		if (getWorld()->locateNearestVomitTrigger(getX(), getY(), x, y, distance))
+		{
+			x -= getX();
+			y -= getY();
+			if (x > 0 && y > 0)
+				setDirection(90 * randInt(0, 1));
+			else if (x < 0 && y > 0)
+				setDirection(90 * randInt(1, 2));
+			else if (x < 0 && y < 0)
+				setDirection(90 * randInt(2, 3));
+			else if (x > 0 && y < 0)
+				setDirection(270 * randInt(0, 1));
+			else if (x > 0 && y == 0)
+				setDirection(right);
+			else if (x < 0 && y == 0)
+				setDirection(left);
+			else if (x == 0 && y > 0)
+				setDirection(up);
+			else if (x == 0 && y < 0)
+				setDirection(down);
+		}
+		else
+			setDirection(90 * randInt(0, 3));
+	}
+	zombieShuffle();
 }
 
 void SmartZombie::dieByFallOrBurnIfAppropriate()
 {
+	setDead();
+	getWorld()->playSound(SOUND_ZOMBIE_DIE);
+	getWorld()->increaseScore(2000);
 }

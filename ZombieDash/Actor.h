@@ -246,6 +246,24 @@ class Zombie : public Agent
 {
 public:
 	Zombie(StudentWorld* w, double x, double y);
+
+	bool isStuck() const{ return m_stuck; };
+
+	void flipStuck();
+
+	bool getPlan() const { return m_movementPlan; };
+
+	void setPlan(int steps) { m_movementPlan = steps; };
+
+	void decPlan() { m_movementPlan--; };
+
+	bool vomitIfAppropriate();
+
+	void zombieShuffle();
+
+private:
+	bool m_stuck;
+	int m_movementPlan;
 };
 
 class DumbZombie : public Zombie
@@ -254,9 +272,6 @@ public:
 	DumbZombie(StudentWorld* w, double x, double y);
 	virtual void doSomething();
 	virtual void dieByFallOrBurnIfAppropriate();
-private:
-	bool m_stuck;
-	int m_movementPlan;
 };
 
 class SmartZombie : public Zombie
