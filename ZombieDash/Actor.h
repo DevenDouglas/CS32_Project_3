@@ -23,35 +23,35 @@ public:
 	virtual void doSomething() = 0;
 
 	// Is this actor dead?
-	bool isDead() const;
+	bool isDead() const { return m_dead; };
 
 	// Mark this actor as dead.
-	void setDead();
+	void setDead() { m_dead = true; };
 
 	// Get this actor's world
-	StudentWorld* getWorld() const;
+	StudentWorld* getWorld() const { return m_world; };
 
 	// If this is an activated object, perform its effect on a (e.g., for an
 	// Exit have a use the exit).
-	virtual void activateIfAppropriate(Actor* a);
+	virtual void activateIfAppropriate(Actor* a) { return; };
 
 	// If this object uses exits, use the exit.
-	virtual void useExitIfAppropriate();
+	virtual void useExitIfAppropriate() { return; };
 
 	// If this object can die by falling into a pit or burning, die.
-	virtual void dieByFallOrBurnIfAppropriate();
+	virtual void dieByFallOrBurnIfAppropriate() { return; };
 
 	// If this object can be infected by vomit, get infected.
-	virtual void beVomitedOnIfAppropriate();
+	virtual void beVomitedOnIfAppropriate() { return; };
 
 	// If this object can pick up goodies, pick up g
-	virtual void pickUpGoodieIfAppropriate(Goodie* g);
+	virtual void pickUpGoodieIfAppropriate(Goodie* g) { return; };
 
 	// Does this object block agent movement?
-	virtual bool blocksMovement() const;
+	virtual bool blocksMovement() const { return false; };
 
 	// Does this object block flames?
-	virtual bool blocksFlame() const;
+	virtual bool blocksFlame() const { return false; };
 
 	// Does this object trigger landmines only when they're active?
 	virtual bool triggersOnlyActiveLandmines() const;
@@ -64,6 +64,8 @@ public:
 
 	// Does this object trigger citizens to follow it or flee it?
 	virtual bool triggersCitizens() const;
+
+
 private:
 	bool m_dead;
 	StudentWorld* m_world;
@@ -107,6 +109,8 @@ public:
 	Flame(StudentWorld* w, double x, double y, int dir);
 	virtual void doSomething();
 	virtual void activateIfAppropriate(Actor* a);
+private:
+	int m_burnOut;
 };
 
 class Vomit : public ActivatingObject
@@ -115,6 +119,8 @@ public:
 	Vomit(StudentWorld* w, double x, double y);
 	virtual void doSomething();
 	virtual void activateIfAppropriate(Actor* a);
+private:
+	int m_bileCount;
 };
 
 class Landmine : public ActivatingObject
@@ -180,7 +186,13 @@ public:
 	void clearInfection();
 
 	// How many ticks since this human was infected by vomit?
-	int getInfectionDuration() const;
+	int getInfectionDuration() const { return m_infection; };
+
+	void incrementInfect() { m_infection++; };
+
+private:
+	bool m_isInfected;
+	int m_infection;
 };
 
 class Penelope : public Human
@@ -193,22 +205,27 @@ public:
 	virtual void pickUpGoodieIfAppropriate(Goodie* g);
 
 	// Increase the number of vaccines the object has.
-	void increaseVaccines();
+	void increaseVaccines() { m_numVaccines++; };
 
 	// Increase the number of flame charges the object has.
-	void increaseFlameCharges();
+	void increaseFlameCharges() { m_numFlameCharges+=5; };
 
 	// Increase the number of landmines the object has.
-	void increaseLandmines();
+	void increaseLandmines() { m_numLandmines++; };
 
 	// How many vaccines does the object have?
-	int getNumVaccines() const;
+	int getNumVaccines() const { return m_numVaccines; };
 
 	// How many flame charges does the object have?
-	int getNumFlameCharges() const;
+	int getNumFlameCharges() const { return m_numFlameCharges; };
 
 	// How many landmines does the object have?
-	int getNumLandmines() const;
+	int getNumLandmines() const { return m_numLandmines; };
+
+private:
+	int m_numVaccines;
+	int m_numFlameCharges;
+	int m_numLandmines;
 };
 
 class Citizen : public Human

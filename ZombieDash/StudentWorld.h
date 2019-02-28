@@ -31,7 +31,7 @@ public:
 
 	// Record that one more citizen on the current level is gone (exited,
 	// died, or turned into a zombie).
-	void recordCitizenGone() { m_numCitizens--; };
+	void recordCitizenGone();
 
 	// Indicate that the player has finished the level if all citizens
 	// are gone.
@@ -40,7 +40,7 @@ public:
 	// For each actor overlapping a, activate a if appropriate.
 	void activateOnAppropriateActors(Actor* a);
 
-	// Is an agent blocked from moving to the indicated location?
+	// DONE Is an agent blocked from moving to the indicated location?
 	bool isAgentMovementBlockedAt(double x, double y, Actor* me) const;
 
 	// Is creation of a flame blocked at the indicated location?
@@ -65,9 +65,12 @@ public:
 	// otherX, otherY and distance will be set to the location and distance
 	// of the one nearest to (x,y).
 	bool locateNearestCitizenThreat(double x, double y, double& otherX, double& otherY, double& distance) const;
+
 private:
 	std::vector<Actor*> m_actors;
 	int m_numCitizens;
+	Penelope* p;
+	bool m_levelFinished;
 };
 
 #endif // STUDENTWORLD_INCLUDED

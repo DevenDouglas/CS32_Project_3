@@ -10,51 +10,6 @@ Actor::Actor(StudentWorld * w, int imageID, double x, double y, int dir, int dep
 {
 }
 
-bool Actor::isDead() const
-{
-	return m_dead;
-}
-
-void Actor::setDead()
-{
-	m_dead = true;
-}
-
-StudentWorld * Actor::getWorld() const
-{
-	return m_world;
-}
-
-void Actor::activateIfAppropriate(Actor * a)
-{
-}
-
-void Actor::useExitIfAppropriate()
-{
-}
-
-void Actor::dieByFallOrBurnIfAppropriate()
-{
-}
-
-void Actor::beVomitedOnIfAppropriate()
-{
-}
-
-void Actor::pickUpGoodieIfAppropriate(Goodie * g)
-{
-}
-
-bool Actor::blocksMovement() const
-{
-	return false;
-}
-
-bool Actor::blocksFlame() const
-{
-	return false;
-}
-
 bool Actor::triggersOnlyActiveLandmines() const
 {
 	return false;
@@ -110,15 +65,17 @@ Exit::Exit(StudentWorld * w, double x, double y)
 
 void Exit::doSomething()
 {
+	getWorld()->activateOnAppropriateActors(this);
 }
 
 void Exit::activateIfAppropriate(Actor * a)
 {
+		a->useExitIfAppropriate();
 }
 
 bool Exit::blocksFlame() const
 {
-	return false;
+	return true;
 }
 
 //============================================================PIT==========================================
@@ -129,38 +86,60 @@ Pit::Pit(StudentWorld * w, double x, double y)
 
 void Pit::doSomething()
 {
+	getWorld()->activateOnAppropriateActors(this);
 }
 
 void Pit::activateIfAppropriate(Actor * a)
 {
+	a->dieByFallOrBurnIfAppropriate();
 }
 
 //============================================================FLAME===========================================
 Flame::Flame(StudentWorld * w, double x, double y, int dir)
-	:ActivatingObject(w,IID_FLAME,x,y,0,dir)
+	:ActivatingObject(w, IID_FLAME, x, y, 0, dir), m_burnOut(2)
 {
 }
 
 void Flame::doSomething()
 {
+	if (isDead())
+		return;
+	m_burnOut--;
+	if (!m_burnOut)
+	{
+		setDead();
+		return;
+	}
+	getWorld()->activateOnAppropriateActors(this);
 }
 
 void Flame::activateIfAppropriate(Actor * a)
 {
+	a->dieByFallOrBurnIfAppropriate();
 }
 
 //============================================================VOMIT===========================================
 Vomit::Vomit(StudentWorld * w, double x, double y)
-	:ActivatingObject(w,IID_VOMIT,x,y,0,right)
+	:ActivatingObject(w,IID_VOMIT,x,y,0,right),m_bileCount(2)
 {
 }
 
 void Vomit::doSomething()
 {
+	if (isDead())
+		return;
+	m_bileCount--;
+	if (!m_bileCount)
+	{
+		setDead();
+		return;
+	}
+	getWorld()->activateOnAppropriateActors(this);
 }
 
 void Vomit::activateIfAppropriate(Actor * a)
 {
+	a->beVomitedOnIfAppropriate();
 }
 
 //============================================================LANDMINE===========================================
@@ -189,10 +168,15 @@ Goodie::Goodie(StudentWorld * w, int imageID, double x, double y)
 
 void Goodie::activateIfAppropriate(Actor * a)
 {
+	a->pickUpGoodieIfAppropriate(this);
+	getWorld()->increaseScore(50);
+	setDead();
+	getWorld()->playSound(SOUND_GOT_GOODIE);
 }
 
 void Goodie::dieByFallOrBurnIfAppropriate()
 {
+	setDead();
 }
 
 //============================================================VACCINE_GOODIE===========================================
@@ -203,10 +187,14 @@ VaccineGoodie::VaccineGoodie(StudentWorld * w, double x, double y)
 
 void VaccineGoodie::doSomething()
 {
+	if (isDead())
+		return;
+	getWorld()->activateOnAppropriateActors(this);
 }
 
 void VaccineGoodie::pickUp(Penelope * p)
 {
+	p->increaseVaccines();
 }
 
 //============================================================GAS_CAN_GOODIE===========================================
@@ -217,10 +205,15 @@ GasCanGoodie::GasCanGoodie(StudentWorld * w, double x, double y)
 
 void GasCanGoodie::doSomething()
 {
+	if (isDead())
+		return;
+	getWorld()->activateOnAppropriateActors(this);
 }
 
 void GasCanGoodie::pickUp(Penelope * p)
 {
+	p->increaseFlameCharges();
+	
 }
 
 //============================================================LANDMINE_GOODIE===========================================
@@ -231,10 +224,14 @@ LandmineGoodie::LandmineGoodie(StudentWorld * w, double x, double y)
 
 void LandmineGoodie::doSomething()
 {
+	if (isDead())
+		return;
+	getWorld()->activateOnAppropriateActors(this);
 }
 
 void LandmineGoodie::pickUp(Penelope * p)
 {
+	p->increaseLandmines();
 }
 
 //============================================================AGENT===========================================
@@ -255,12 +252,15 @@ bool Agent::triggersOnlyActiveLandmines() const
 
 //============================================================HUMAN===========================================
 Human::Human(StudentWorld * w, int imageID, double x, double y)
-	:Agent(w,imageID,x,y)
+	:Agent(w,imageID,x,y),m_isInfected(false),m_infection(0)
 {
 }
 
 void Human::beVomitedOnIfAppropriate()
 {
+	m_isInfected = true;
+	if (getInfectionDuration() == 0)
+		m_infection = 1;
 }
 
 bool Human::triggersZombieVomit() const
@@ -272,19 +272,27 @@ void Human::clearInfection()
 {
 }
 
-int Human::getInfectionDuration() const
-{
-	return 0;
-}
-
 //============================================================PENELOPE===========================================
 Penelope::Penelope(StudentWorld * w, double x, double y)
-	:Human(w,IID_PLAYER,x,y)
+	:Human(w,IID_PLAYER,x,y),m_numVaccines(0),m_numFlameCharges(0),m_numLandmines(0)
 {
 }
 
 void Penelope::doSomething()
 {
+	if (isDead())
+		return;
+	if (getInfectionDuration()>0)
+	{
+		incrementInfect();
+		if (getInfectionDuration() == 500)
+		{
+			setDead();
+			getWorld()->playSound(SOUND_PLAYER_DIE);
+			return;
+		}
+	}
+
 	int button;
 	if (getWorld()->getKey(button))
 	{
@@ -310,48 +318,33 @@ void Penelope::doSomething()
 			if (!getWorld()->isAgentMovementBlockedAt(getX() + 4, getY(), this))
 				moveTo(getX() + 4, getY());
 			break;
+		case KEY_PRESS_SPACE: //not done yet
+			break;
+		case KEY_PRESS_TAB: //not done yet
+			break;
+		case KEY_PRESS_ENTER: //not done yet
+			break;
 		}
 	}
+	
 
 }
 
 void Penelope::useExitIfAppropriate()
 {
+	getWorld()->recordLevelFinishedIfAllCitizensGone();
 }
 
 void Penelope::dieByFallOrBurnIfAppropriate()
 {
+	setDead();
+	getWorld()->playSound(SOUND_PLAYER_DIE);
 }
 
 void Penelope::pickUpGoodieIfAppropriate(Goodie * g)
 {
-}
+	g->pickUp(this);
 
-void Penelope::increaseVaccines()
-{
-}
-
-void Penelope::increaseFlameCharges()
-{
-}
-
-void Penelope::increaseLandmines()
-{
-}
-
-int Penelope::getNumVaccines() const
-{
-	return 0;
-}
-
-int Penelope::getNumFlameCharges() const
-{
-	return 0;
-}
-
-int Penelope::getNumLandmines() const
-{
-	return 0;
 }
 
 //============================================================CITIZEN===========================================
@@ -366,6 +359,10 @@ void Citizen::doSomething()
 
 void Citizen::useExitIfAppropriate()
 {
+	setDead();
+	getWorld()->playSound(SOUND_CITIZEN_SAVED);
+	getWorld()->increaseScore(500);
+	getWorld()->recordCitizenGone();
 }
 
 void Citizen::dieByFallOrBurnIfAppropriate()

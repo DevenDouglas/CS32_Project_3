@@ -7,6 +7,7 @@
 #include <iostream>
 #include <sstream>
 #include <iomanip>
+#include <cmath>
 using namespace std;
 
 GameWorld* createStudentWorld(string assetPath)
@@ -17,7 +18,7 @@ GameWorld* createStudentWorld(string assetPath)
 // Students:  Add code to this file, StudentWorld.h, Actor.h and Actor.cpp
 
 StudentWorld::StudentWorld(string assetPath)
-: GameWorld(assetPath)
+	: GameWorld(assetPath), m_numCitizens(0),m_levelFinished(false)
 {
 	
 }
@@ -34,10 +35,10 @@ int StudentWorld::init()
 	oss << "level0" << getLevel() << ".txt";
 	string levelFile = oss.str();
 	Level::LoadResult result = lev.loadLevel(levelFile);
-	if (result == Level::load_fail_file_not_found)
-		cerr << "Cannot find"<<levelFile<< "data file" << endl;
+	if (result == Level::load_fail_file_not_found || getLevel()>99)
+		return GWSTATUS_PLAYER_WON;
 	else if (result == Level::load_fail_bad_format)
-		cerr << "Your level was improperly formatted" << endl;
+		return GWSTATUS_LEVEL_ERROR;
 	else if (result == Level::load_success)
 	{
 		cerr << "Successfully loaded level" << endl;
@@ -54,10 +55,12 @@ int StudentWorld::init()
 						addActor(new Wall(this, i * 16, j * 16));
 						break;
 					case Level::player:
-						addActor(new Penelope(this, i * 16, j * 16));
-					case Level::citizen:
+						p = new Penelope(this, i * 16, j * 16);
 						break;
+					case Level::citizen:
 						addActor(new Citizen(this, i * 16, j * 16));
+						m_numCitizens++;
+						m_levelFinished = false;
 						break;
 					case Level::pit:
 						addActor(new Pit(this, i * 16, j * 16));
@@ -84,37 +87,82 @@ int StudentWorld::init()
 			}
 		return GWSTATUS_CONTINUE_GAME;
 	}
-	return GWSTATUS_PLAYER_DIED;
+	return GWSTATUS_CONTINUE_GAME;
 }
 
 int StudentWorld::move()
 {
-    // This code is here merely to allow the game to build, run, and terminate after you hit enter.
-    // Notice that the return value GWSTATUS_PLAYER_DIED will cause our framework to end the current level.
+	p->doSomething();
+	if (p->isDead())
+		return GWSTATUS_PLAYER_DIED;
 	for (int i = 0;i < m_actors.size();i++)
-		m_actors[i]->doSomething();
+	{
+		if (!m_actors[i]->isDead())
+			m_actors[i]->doSomething();
+		if (p->isDead())
+			return GWSTATUS_PLAYER_DIED;
+		if (m_levelFinished)
+			return GWSTATUS_FINISHED_LEVEL;
+	}
+	vector<Actor*>::iterator it;
+	for (it = m_actors.begin();it != m_actors.end();it++)
+	{
+		if ((*it)->isDead())
+		{
+			delete *it;
+			if (it != m_actors.end())
+				swap(*it, m_actors.back());
+			m_actors.pop_back();
+			it--;
+		}
+	}
+	ostringstream oss;
+	oss << "Score: ";
+	oss.fill('0');
+	oss << setw(6) << getScore();
+	oss << "  Level: " << getLevel() << "  Lives: " << getLives() << "  Vaccines: " <<
+		p->getNumVaccines() << "  Flames: " << p->getNumFlameCharges() << "  Mines: " << 
+		p->getNumLandmines() <<"  Infected: " << p->getInfectionDuration();
+	string status = oss.str();
+	setGameStatText(status);
     return GWSTATUS_CONTINUE_GAME;
 }
 
 void StudentWorld::cleanUp()
 {
-	//int numThings = m_actors.size();
-	//cout <<"\t\t\tmy size is"<< m_actors.size() << endl;
 	for (int i = 0;i < m_actors.size();++i)
 	{
-		//cout << i << endl;
+		
 		delete m_actors[i];
 	}
 	m_actors.clear();
-	//cout << "squeaky clean" << endl;
+	delete p;
+}
+
+void StudentWorld::recordCitizenGone()
+{
+	 m_numCitizens--;
 }
 
 void StudentWorld::recordLevelFinishedIfAllCitizensGone()
 {
+	if (!m_numCitizens)
+		m_levelFinished = true;
 }
 
 void StudentWorld::activateOnAppropriateActors(Actor * a)
 {
+	for (int i = 0;i < m_actors.size();i++)
+	{
+		if (pow(a->getX() - m_actors[i]->getX(), 2) + pow(a->getY() - m_actors[i]->getY(), 2) <= 100&&a!=m_actors[i])
+		{
+			a->activateIfAppropriate(m_actors[i]);
+		}
+	}
+	if (pow(a->getX() - p->getX(), 2) + pow(a->getY() - p->getY(), 2) <= 100)
+	{
+		a->activateIfAppropriate(p);
+	}
 }
 
 bool StudentWorld::isAgentMovementBlockedAt(double x, double y, Actor* me) const
