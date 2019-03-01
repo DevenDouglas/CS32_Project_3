@@ -119,8 +119,14 @@ int StudentWorld::move()
 	}
 	ostringstream oss;
 	oss << "Score: ";
+	int k = 6;
+	if (getScore() < 0)
+	{
+		oss << "-";
+		k--;
+	}
 	oss.fill('0');
-	oss << setw(6) << getScore();
+	oss << setw(k) << abs(getScore());
 	oss << "  Level: " << getLevel() << "  Lives: " << getLives() << "  Vaccines: " <<
 		p->getNumVaccines() << "  Flames: " << p->getNumFlameCharges() << "  Mines: " << 
 		p->getNumLandmines() <<"  Infected: " << p->getInfectionDuration();
@@ -204,7 +210,7 @@ bool StudentWorld::locateNearestVomitTrigger(double x, double y, double & otherX
 		if (m_actors[i]->triggersZombieVomit())
 		{
 			double temp = distance;
-			distance = min((pow(m_actors[i]->getX() - x, 2) + pow(m_actors[i]->getY() - y, 2)),distance);
+			distance = min((pow(m_actors[i]->getX() - x, 2) + pow(m_actors[i]->getY() - y, 2)),temp);
 			if (temp!=distance)
 			{
 				otherX = m_actors[i]->getX();
@@ -223,12 +229,47 @@ bool StudentWorld::locateNearestVomitTrigger(double x, double y, double & otherX
 
 bool StudentWorld::locateNearestCitizenTrigger(double x, double y, double & otherX, double & otherY, double & distance, bool & isThreat) const
 {
-	return false;
+	for (int i = 0;i < m_actors.size();i++)
+	{
+		if (m_actors[i]->triggersCitizens())
+		{
+			double temp = distance;
+			distance = min((pow(m_actors[i]->getX() - x, 2) + pow(m_actors[i]->getY() - y, 2)), temp);
+			if (temp != distance)
+			{
+				otherX = m_actors[i]->getX();
+				otherY = m_actors[i]->getY();
+			}
+		}
+	}
+	isThreat = true;
+	if (pow(p->getX() - x, 2) + pow(p->getY() - y, 2) <= distance)
+	{
+		distance = pow(p->getX() - x, 2) + pow(p->getY() - y, 2);
+		otherX = p->getX();
+		otherY = p->getY();
+		isThreat = false;
+	}
+	return (distance != 6401);
 }
 
-bool StudentWorld::locateNearestCitizenThreat(double x, double y, double & otherX, double & otherY, double & distance) const
+double StudentWorld::locateNearestCitizenThreat(double x, double y, double & otherX, double & otherY, double & distance) const
 {
-	return false;
+	for (int i = 0;i < m_actors.size();i++)
+	{
+		if (m_actors[i]->triggersCitizens())
+		{
+			double temp = distance;
+			distance = min((pow(m_actors[i]->getX() - x, 2) + pow(m_actors[i]->getY() - y, 2)), temp);
+			if (temp != distance)
+			{
+				otherX = m_actors[i]->getX();
+				otherY = m_actors[i]->getY();
+			}
+		}
+	}
+	cout << distance<<endl;
+	return distance;
 }
 
 bool StudentWorld::wouldOverlap(double x, double y)

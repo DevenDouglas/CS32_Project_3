@@ -55,7 +55,7 @@ public:
 	// of the human nearest to (x,y).
 	bool locateNearestVomitTrigger(double x, double y, double& otherX, double& otherY, double& distance);
 
-	// Return true if there is a living zombie or Penelope, otherwise false.
+	// Return true if there is a living zombie or Penelope within 80 Euclidean distance, otherwise false.
 	// If true, otherX, otherY, and distance will be set to the location and
 	// distance of the one nearest to (x,y), and isThreat will be set to true
 	// if it's a zombie, false if a Penelope.
@@ -64,7 +64,7 @@ public:
 	// Return true if there is a living zombie, false otherwise.  If true,
 	// otherX, otherY and distance will be set to the location and distance
 	// of the one nearest to (x,y).
-	bool locateNearestCitizenThreat(double x, double y, double& otherX, double& otherY, double& distance) const;
+	double locateNearestCitizenThreat(double x, double y, double& otherX, double& otherY, double& distance) const;
 
 	bool wouldOverlap(double x, double y);
 private:

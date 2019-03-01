@@ -63,7 +63,7 @@ public:
 	virtual bool threatensCitizens() const;
 
 	// Does this object trigger citizens to follow it or flee it?
-	virtual bool triggersCitizens() const;
+	virtual bool triggersCitizens() const { return false; };
 
 	virtual bool isPlayer() const { return false; };
 private:
@@ -176,6 +176,12 @@ public:
 	Agent(StudentWorld* w, int imageID, double x, double y);
 	virtual bool blocksMovement() const;
 	virtual bool triggersOnlyActiveLandmines() const { return true; };
+
+	bool isStuck() const { return m_stuck; };
+
+	void flipStuck();
+private:
+	bool m_stuck;
 };
 
 class Human : public Agent
@@ -247,9 +253,6 @@ class Zombie : public Agent
 public:
 	Zombie(StudentWorld* w, double x, double y);
 
-	bool isStuck() const{ return m_stuck; };
-
-	void flipStuck();
 
 	bool getPlan() const { return m_movementPlan; };
 
@@ -261,6 +264,7 @@ public:
 
 	void zombieShuffle();
 
+	virtual bool triggersCitizens() const { return true; };
 private:
 	bool m_stuck;
 	int m_movementPlan;

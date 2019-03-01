@@ -1,6 +1,7 @@
 #include "Actor.h"
 #include "StudentWorld.h"
 #include <vector>
+#include <algorithm>
 using namespace std;
 
 
@@ -11,11 +12,6 @@ Actor::Actor(StudentWorld * w, int imageID, double x, double y, int dir, int dep
 }
 
 bool Actor::threatensCitizens() const
-{
-	return false;
-}
-
-bool Actor::triggersCitizens() const
 {
 	return false;
 }
@@ -246,13 +242,21 @@ void LandmineGoodie::pickUp(Penelope * p)
 
 //============================================================AGENT===========================================
 Agent::Agent(StudentWorld * w, int imageID, double x, double y)
-	:Actor(w,imageID,x,y,right,0)
+	:Actor(w, imageID, x, y, right, 0), m_stuck(false)
 {
 }
 
 bool Agent::blocksMovement() const
 {
 	return true;
+}
+
+void Agent::flipStuck()
+{
+	if (m_stuck == false)
+		m_stuck = true;
+	else
+		m_stuck = false;
 }
 
 //============================================================HUMAN===========================================
@@ -407,6 +411,227 @@ Citizen::Citizen(StudentWorld * w, double x, double y)
 
 void Citizen::doSomething()
 {
+	if (isDead())
+		return;
+	if (getInfectionDuration() > 0)
+	{
+		incrementInfect();
+		if (getInfectionDuration() == 500)
+		{
+			setDead();
+			getWorld()->playSound(SOUND_ZOMBIE_BORN);
+			getWorld()->increaseScore(-1000);
+			if (randInt(0, 9) > 6)
+				getWorld()->addActor(new SmartZombie(getWorld(), getX(), getY()));
+			else
+				getWorld()->addActor(new DumbZombie(getWorld(), getX(), getY()));
+			return;
+		}
+	}
+	flipStuck();
+	if (!isStuck())
+		return;
+	double x = 0;
+	double y = 0;
+	double distance = 6401;
+	bool threat = true;
+	if (getWorld()->locateNearestCitizenTrigger(getX(), getY(), x, y, distance, threat))
+	{
+		if (!threat)
+		{
+			//moving up/down
+			if (getX() == x)
+			{
+				if (y > getY())
+				{
+					if (!getWorld()->isAgentMovementBlockedAt(getX(), getY() + 2, this))
+					{
+						setDirection(up);
+						moveTo(getX(), getY() + 2);
+						return;
+					}
+				}
+				else if (y < getY())
+					if (!getWorld()->isAgentMovementBlockedAt(getX(), getY() - 2, this))
+					{
+						setDirection(down);
+						moveTo(getX(), getY() - 2);
+						return;
+					}
+			}
+			//moving left/right
+			else if (getY() == y)
+			{
+				if (x > getX())
+				{
+					if (!getWorld()->isAgentMovementBlockedAt(getX() + 2, getY(), this))
+					{
+						setDirection(right);
+						moveTo(getX() + 2, getY());
+						return;
+					}
+				}
+				else if (x < getX())
+					if (!getWorld()->isAgentMovementBlockedAt(getX() - 2, getY(), this))
+					{
+						setDirection(left);
+						moveTo(getX() - 2, getY());
+						return;
+					}
+			}
+			//moving diagonal right
+			else if (x > getX())
+			{
+				if (y > getY())
+				{
+					setDirection(90 * randInt(0, 1));
+					if (getDirection() == right)
+					{
+						if (!getWorld()->isAgentMovementBlockedAt(getX() + 2, getY(), this))
+						{
+							moveTo(getX() + 2, getY());
+							return;
+						}
+					}
+					else
+					{
+						if (!getWorld()->isAgentMovementBlockedAt(getX(), getY() + 2, this))
+						{
+							moveTo(getX(), getY() + 2);
+							return;
+						}
+					}
+				}
+				else if (y < getY())
+				{
+					setDirection(270 * randInt(0, 1));
+					if (getDirection() == right)
+					{
+						if (!getWorld()->isAgentMovementBlockedAt(getX() + 2, getY(), this))
+						{
+							moveTo(getX() + 2, getY());
+							return;
+						}
+					}
+					else
+					{
+						if (!getWorld()->isAgentMovementBlockedAt(getX(), getY() - 2, this))
+						{
+							moveTo(getX(), getY() - 2);
+							return;
+						}
+					}
+				}
+			}
+			else if (x < getX())
+			{
+				if (y > getY())
+				{
+					setDirection(90 * randInt(1, 2));
+					if (getDirection() == left)
+					{
+						if (!getWorld()->isAgentMovementBlockedAt(getX() - 2, getY(), this))
+						{
+							moveTo(getX() - 2, getY());
+							return;
+						}
+					}
+					else
+					{
+						if (!getWorld()->isAgentMovementBlockedAt(getX(), getY() + 2, this))
+						{
+							moveTo(getX(), getY() + 2);
+							return;
+						}
+					}
+				}
+				else if (y < getY())
+				{
+					setDirection(90 * randInt(2, 3));
+					if (getDirection() == left)
+					{
+						if (!getWorld()->isAgentMovementBlockedAt(getX() - 2, getY(), this))
+						{
+							moveTo(getX() - 2, getY());
+							return;
+						}
+					}
+					else
+					{
+						if (!getWorld()->isAgentMovementBlockedAt(getX(), getY() - 2, this))
+						{
+							moveTo(getX(), getY() - 2);
+							return;
+						}
+					}
+				}
+			}
+		}
+	}
+	distance = 6401;
+	if (getWorld()->locateNearestCitizenThreat(getX(), getY(), x, y, distance) != 6401)
+	{
+		double greatest = distance;
+		bool willMove=false;
+		if (!getWorld()->isAgentMovementBlockedAt(getX() + 2, getY(), this)) //right
+		{
+			double temp = greatest;
+			double greatest = max(temp, getWorld()->locateNearestCitizenThreat(getX() + 2, getY(), x, y, distance));
+			if (temp != greatest)
+			{
+				setDirection(right);
+				willMove = true;
+			}
+		}
+		if (!getWorld()->isAgentMovementBlockedAt(getX() - 2, getY(), this)) //left
+		{
+			double temp = greatest;
+			//double somethingElse = getWorld()->locateNearestCitizenThreat(getX() - 2, getY(), x, y, distance);
+			double greatest = max(temp, getWorld()->locateNearestCitizenThreat(getX() - 2, getY(), x, y, distance));
+			if (temp != greatest)
+			{
+				setDirection(left);
+				willMove = true;
+			}
+		}
+		if (!getWorld()->isAgentMovementBlockedAt(getX(), getY() + 2, this)) //up
+		{
+			double temp = greatest;
+			double greatest = max(temp, getWorld()->locateNearestCitizenThreat(getX(), getY() + 2, x, y, distance));
+			if (temp != greatest)
+			{
+				setDirection(up);
+				willMove = true;
+			}
+		}
+		if (!getWorld()->isAgentMovementBlockedAt(getX(), getY() - 2, this)) //down
+		{
+			double temp = greatest;
+			double greatest = max(temp, getWorld()->locateNearestCitizenThreat(getX(), getY() - 2, x, y, distance));
+			if (temp != greatest)
+			{
+				setDirection(down);
+				willMove = true;
+			}
+		}
+		if (willMove)
+			switch (getDirection())
+			{
+			case right:
+				moveTo(getX() + 2, getY());
+				break;
+			case left:
+				moveTo(getX() - 2, getY());
+				break;
+			case up:
+				moveTo(getX(), getY() + 2);
+				break;
+			case down:
+				moveTo(getX(), getY() - 2);
+				break;
+			}
+	}
+	return;
 }
 
 void Citizen::useExitIfAppropriate()
@@ -420,20 +645,16 @@ void Citizen::useExitIfAppropriate()
 void Citizen::dieByFallOrBurnIfAppropriate()
 {
 	setDead();
+	getWorld()->playSound(SOUND_CITIZEN_DIE);
+	getWorld()->increaseScore(-1000);
 }
 
 //============================================================ZOMBIE===========================================
 Zombie::Zombie(StudentWorld * w, double x, double y)
-	:Agent(w,IID_ZOMBIE,x,y), m_stuck(false),m_movementPlan(0)
+	:Agent(w,IID_ZOMBIE,x,y),m_movementPlan(0)
 {
 }
-void Zombie::flipStuck()
-{
-	if (m_stuck == false)
-		m_stuck = true;
-	else
-		m_stuck = false;
-}
+
 
 bool Zombie::vomitIfAppropriate()
 {
